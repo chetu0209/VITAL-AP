@@ -2,20 +2,19 @@
 project:
   title:        "VITAL-AP: Value-, Transition-, and Temporal-Aware Adaptive Register"
   author:       "Chethan S P"
-  discord:      ""      # Add your Discord username if required
-  description:  "Adaptive pixel register that suppresses unnecessary switching in image and video data using value, transition, and temporal activity awareness."
+  discord:      ""
+  description:  "Adaptive pixel register that reduces unnecessary switching in image and video data using value, transition, temporal activity, and adaptive thresholding."
   language:     "Verilog"
   clock_hz:     50000000
 
-  # 1x1 tile
   tiles: "1x1"
 
-  top_module:  "tt_um_vital_ap"
+  top_module: "tt_um_vital_ap"
 
   source_files:
     - "project.v"
 
-# Pinout
+# The pinout of your project.
 pinout:
   # Inputs
   ui[0]: "PIXEL_IN[0]"
@@ -45,7 +44,7 @@ pinout:
   uio[4]: "HOLD"
   uio[5]: "ACTIVITY[0]"
   uio[6]: "ACTIVITY[1]"
-  uio[7]: "UNUSED"
+  uio[7]: "RESET_N"
 
 # Do not change!
 yaml_version: 6
