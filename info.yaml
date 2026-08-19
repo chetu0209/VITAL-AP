@@ -1,22 +1,18 @@
-# Tiny Tapeout project information
 project:
   title:        "VITAL-AP: Value-, Transition-, and Temporal-Aware Adaptive Register"
   author:       "Chethan S P"
   discord:      ""
-  description:  "Adaptive pixel register that reduces unnecessary switching in image and video data using value, transition, temporal activity, and adaptive thresholding."
+  description:  "Adaptive pixel register that reduces unnecessary switching in image and video processing using value, transition, temporal activity, and adaptive thresholding."
   language:     "Verilog"
   clock_hz:     50000000
-
-  tiles: "1x1"
-
-  top_module: "tt_um_vital_ap"
+  tiles:        "1x1"
+  top_module:   "tt_um_vital_ap"
 
   source_files:
     - "project.v"
 
-# The pinout of your project.
 pinout:
-  # Inputs
+  # Pixel input
   ui[0]: "PIXEL_IN[0]"
   ui[1]: "PIXEL_IN[1]"
   ui[2]: "PIXEL_IN[2]"
@@ -26,7 +22,7 @@ pinout:
   ui[6]: "PIXEL_IN[6]"
   ui[7]: "PIXEL_IN[7]"
 
-  # Outputs
+  # Pixel output
   uo[0]: "PIXEL_OUT[0]"
   uo[1]: "PIXEL_OUT[1]"
   uo[2]: "PIXEL_OUT[2]"
@@ -36,15 +32,14 @@ pinout:
   uo[6]: "PIXEL_OUT[6]"
   uo[7]: "PIXEL_OUT[7]"
 
-  # Bidirectional pins
-  uio[0]: "ENABLE"
-  uio[1]: "SENSITIVITY[0]"
-  uio[2]: "SENSITIVITY[1]"
+  # Bidirectional
+  uio[0]: "SENSITIVITY[0]"
+  uio[1]: "SENSITIVITY[1]"
+  uio[2]: "RESET_N"
   uio[3]: "UPDATE"
   uio[4]: "HOLD"
   uio[5]: "ACTIVITY[0]"
   uio[6]: "ACTIVITY[1]"
-  uio[7]: "RESET_N"
+  uio[7]: "UNUSED"
 
-# Do not change!
 yaml_version: 6
