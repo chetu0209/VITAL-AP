@@ -1,5 +1,5 @@
 [*]
-[*] GTKWave save file for VITAL-AP
+[*] VITAL-AP GTKWave
 [*]
 
 [dumpfile] "tb.fst"
@@ -14,12 +14,8 @@
 
 tb.clk
 tb.ena
-
-tb.rst_n
-
 tb.ui_in
 tb.uio_in
-
 tb.uo_out
 tb.uio_out
 tb.uio_oe
