@@ -30,6 +30,11 @@ module tb;
         $dumpfile("tb.fst");
         $dumpvars(0, tb);
 
+        clk = 0;
+        ena = 0;
+        ui_in = 0;
+        uio_in = 0;
+
     end
 
 endmodule
