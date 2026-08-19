@@ -1,178 +1,92 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-// ============================================================
-// VITAL-AP
-//
-// Value-, Transition-, and Temporal-Aware Adaptive Register
-// for Low-Power Image and Video Processing
-//
-// ============================================================
-//
-// Pin mapping:
-//
-// ui_in[7:0]
-//     8-bit pixel input
-//
-// uo_out[7:0]
-//     8-bit adaptive pixel output
-//
-// uio_in[0]
-//     ENABLE
-//
-// uio_in[2:1]
-//     SENSITIVITY
-//
-// uio_in[7]
-//     RESET_N (active-low)
-//
-// uio_out[0]
-//     UPDATE
-//
-// uio_out[1]
-//     HOLD
-//
-// uio_out[3:2]
-//     ACTIVITY LEVEL
-//
-// uio[4:6]
-//     unused
-//
-// ============================================================
-
 module tt_um_vital_ap (
-
     input  wire [7:0] ui_in,
-
     output wire [7:0] uo_out,
 
     input  wire [7:0] uio_in,
-
     output wire [7:0] uio_out,
-
     output wire [7:0] uio_oe,
 
-    input  wire       ena,
-
-    input  wire       clk
-
+    input wire clk,
+    input wire ena
 );
 
-    // ========================================================
-    // Control signals
-    // ========================================================
+    // =========================================================
+    // CONTROL
+    // =========================================================
 
     wire enable;
+    wire reset_n;
 
     wire [1:0] sensitivity;
 
-    wire reset_n;
+    assign enable = ena;
+
+    assign sensitivity = uio_in[1:0];
+
+    assign reset_n = uio_in[2];
 
 
-    assign enable     = ena & uio_in[0];
-
-    assign sensitivity = uio_in[2:1];
-
-    assign reset_n    = uio_in[7];
-
-
-    // ========================================================
-    // Registers
-    // ========================================================
+    // =========================================================
+    // INTERNAL REGISTERS
+    // =========================================================
 
     reg [7:0] pixel_out;
 
     reg [7:0] previous_pixel;
 
-    // Temporal history
     reg activity_d1;
     reg activity_d2;
 
 
-    // ========================================================
-    // Combinational signals
-    // ========================================================
+    // =========================================================
+    // DIFFERENCE
+    // =========================================================
 
     wire current_change;
 
     reg [7:0] difference;
 
-    reg [7:0] threshold;
-
-    reg [1:0] activity_level;
-
-    reg update;
-
-    reg hold;
-
-
-    // ========================================================
-    // Transition detector
-    // ========================================================
-
     assign current_change =
         (ui_in != previous_pixel);
 
 
-    // ========================================================
-    // Absolute difference detector
-    // ========================================================
-
     always @(*) begin
 
         if (ui_in >= previous_pixel)
-
-            difference =
-                ui_in - previous_pixel;
-
+            difference = ui_in - previous_pixel;
         else
-
-            difference =
-                previous_pixel - ui_in;
+            difference = previous_pixel - ui_in;
 
     end
 
 
-    // ========================================================
-    // Temporal activity classifier
-    //
-    // current_change
-    // activity_d1
-    // activity_d2
-    //
-    // 00 = very low activity
-    // 01 = low activity
-    // 10 = medium activity
-    // 11 = high activity
-    // ========================================================
+    // =========================================================
+    // TEMPORAL ACTIVITY
+    // =========================================================
+
+    reg [1:0] activity_level;
 
     always @(*) begin
 
-        case ({current_change,
-               activity_d1,
-               activity_d2})
+        case ({current_change, activity_d1, activity_d2})
 
             3'b000,
             3'b001,
             3'b010:
-
                 activity_level = 2'b00;
-
 
             3'b011,
             3'b100:
-
                 activity_level = 2'b01;
-
 
             3'b101,
             3'b110:
-
                 activity_level = 2'b10;
 
-
             default:
-
                 activity_level = 2'b11;
 
         endcase
@@ -180,18 +94,11 @@ module tt_um_vital_ap (
     end
 
 
-    // ========================================================
-    // Adaptive threshold
-    //
-    // sensitivity:
-    //
-    // 00 = 1
-    // 01 = 3
-    // 10 = 7
-    // 11 = 15
-    //
-    // Temporal activity modifies the threshold.
-    // ========================================================
+    // =========================================================
+    // ADAPTIVE THRESHOLD
+    // =========================================================
+
+    reg [7:0] threshold;
 
     always @(*) begin
 
@@ -214,40 +121,19 @@ module tt_um_vital_ap (
 
         case (activity_level)
 
-            // Very low activity
-            // More aggressive suppression
-
             2'b00:
-
                 threshold = threshold + 8'd4;
 
-
-            // Low activity
-
             2'b01:
-
                 threshold = threshold + 8'd2;
 
-
-            // Medium activity
-
             2'b10:
-
                 threshold = threshold;
 
-
-            // High activity
-            // Become more sensitive
-
             2'b11:
-
                 if (threshold >= 8'd2)
-
-                    threshold =
-                        threshold - 8'd2;
-
+                    threshold = threshold - 8'd2;
                 else
-
                     threshold = 8'd0;
 
         endcase
@@ -255,66 +141,53 @@ module tt_um_vital_ap (
     end
 
 
-    // ========================================================
-    // UPDATE / HOLD decision
-    // ========================================================
+    // =========================================================
+    // UPDATE / HOLD
+    // =========================================================
+
+    reg update;
+    reg hold;
 
     always @(*) begin
 
         update = 1'b0;
-
-        hold = 1'b1;
-
+        hold   = 1'b1;
 
         if (enable &&
             current_change &&
             (difference >= threshold)) begin
 
             update = 1'b1;
-
-            hold = 1'b0;
+            hold   = 1'b0;
 
         end
 
     end
 
 
-    // ========================================================
-    // Sequential block
-    // ========================================================
+    // =========================================================
+    // SEQUENTIAL LOGIC
+    // =========================================================
 
     always @(posedge clk or negedge reset_n) begin
 
         if (!reset_n) begin
 
-            pixel_out     <= 8'd0;
-
+            pixel_out      <= 8'd0;
             previous_pixel <= 8'd0;
 
-            activity_d1   <= 1'b0;
-
-            activity_d2   <= 1'b0;
+            activity_d1    <= 1'b0;
+            activity_d2    <= 1'b0;
 
         end
-
         else begin
-
-            // Save current pixel for next comparison
 
             previous_pixel <= ui_in;
 
-
-            // Temporal activity history
-
             activity_d2 <= activity_d1;
-
             activity_d1 <= current_change;
 
-
-            // Update adaptive pixel register
-
             if (enable && update)
-
                 pixel_out <= ui_in;
 
         end
@@ -322,38 +195,48 @@ module tt_um_vital_ap (
     end
 
 
-    // ========================================================
-    // Outputs
-    // ========================================================
+    // =========================================================
+    // OUTPUT PIXEL
+    // =========================================================
 
     assign uo_out = pixel_out;
 
 
-    // uio_out:
+    // =========================================================
+    // STATUS OUTPUTS
     //
-    // bit 0 = UPDATE
-    // bit 1 = HOLD
-    // bits 3:2 = ACTIVITY
-    //
+    // uio_out[3] = UPDATE
+    // uio_out[4] = HOLD
+    // uio_out[5] = ACTIVITY[0]
+    // uio_out[6] = ACTIVITY[1]
+    // =========================================================
 
     assign uio_out = {
-        4'b0000,
-        activity_level,
+        1'b0,
+        activity_level[1],
+        activity_level[0],
         hold,
-        update
+        update,
+        3'b000
     };
 
 
-    // ========================================================
-    // Bidirectional pin direction
+    // =========================================================
+    // PIN DIRECTIONS
     //
-    // uio[3:0] = outputs
-    // uio[7:4] = inputs
+    // uio[0] = INPUT
+    // uio[1] = INPUT
+    // uio[2] = INPUT
     //
-    // uio[7] is RESET_N input.
-    // ========================================================
+    // uio[3] = OUTPUT
+    // uio[4] = OUTPUT
+    // uio[5] = OUTPUT
+    // uio[6] = OUTPUT
+    //
+    // uio[7] = INPUT/unused
+    // =========================================================
 
-    assign uio_oe = 8'b0000_1111;
+    assign uio_oe = 8'b0111_1000;
 
 
 endmodule
