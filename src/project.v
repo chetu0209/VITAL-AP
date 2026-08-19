@@ -4,7 +4,6 @@ module tt_um_vital_ap #(
     parameter DATA_WIDTH = 8
 )(
     input  logic                  clk,
-    input  logic                  rst_n,
 
     // 8-bit grayscale pixel input
     input  logic [DATA_WIDTH-1:0] pixel_in,
