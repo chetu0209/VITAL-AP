@@ -4,6 +4,7 @@
 module tb;
 
     reg clk;
+    reg rst_n;
     reg ena;
 
     reg [7:0] ui_in;
@@ -17,11 +18,14 @@ module tb;
     tt_um_vital_ap dut (
         .ui_in   (ui_in),
         .uo_out  (uo_out),
+
         .uio_in  (uio_in),
         .uio_out (uio_out),
         .uio_oe  (uio_oe),
+
         .ena     (ena),
-        .clk     (clk)
+        .clk     (clk),
+        .rst_n   (rst_n)
     );
 
 
@@ -30,9 +34,11 @@ module tb;
         $dumpfile("tb.fst");
         $dumpvars(0, tb);
 
-        clk = 0;
-        ena = 0;
-        ui_in = 0;
+        clk    = 0;
+        rst_n  = 0;
+        ena    = 0;
+
+        ui_in  = 0;
         uio_in = 0;
 
     end
