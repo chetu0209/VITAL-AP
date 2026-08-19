@@ -17,17 +17,9 @@ async def run_cycles(dut, count):
         await clock_cycle(dut)
 
 
-def set_control(dut, sensitivity=1, reset_n=1):
+def set_sensitivity(dut, sensitivity):
 
-    value = 0
-
-    # uio[1:0] = sensitivity
-    value |= sensitivity & 0x3
-
-    # uio[2] = reset_n
-    value |= (reset_n & 0x1) << 2
-
-    dut.uio_in.value = value
+    dut.uio_in.value = sensitivity & 0x3
 
 
 async def apply_pixel(dut, value):
@@ -44,9 +36,9 @@ async def apply_pixel(dut, value):
     hold = (status >> 4) & 1
     activity = (status >> 5) & 3
 
-    print(
-        f"INPUT={value:3d} "
-        f"OUTPUT={output:3d} "
+    dut._log.info(
+        f"INPUT={value} "
+        f"OUTPUT={output} "
         f"UPDATE={update} "
         f"HOLD={hold} "
         f"ACTIVITY={activity:02b}"
@@ -58,31 +50,28 @@ async def apply_pixel(dut, value):
 @cocotb.test()
 async def test_vital_ap(dut):
 
-    print("========================================")
-    print("        VITAL-AP TEST START")
-    print("========================================")
+    dut._log.info("================================")
+    dut._log.info("      VITAL-AP TEST START")
+    dut._log.info("================================")
 
 
     # ---------------------------------------------------------
-    # INITIAL VALUES
+    # INITIALIZATION
     # ---------------------------------------------------------
 
     dut.clk.value = 0
-    dut.ena.value = 1
+    dut.rst_n.value = 0
+    dut.ena.value = 0
     dut.ui_in.value = 0
 
-    set_control(
-        dut,
-        sensitivity=1,
-        reset_n=0
-    )
+    set_sensitivity(dut, 1)
 
 
     # ---------------------------------------------------------
     # RESET
     # ---------------------------------------------------------
 
-    print("Applying reset...")
+    dut._log.info("Applying reset")
 
     await run_cycles(dut, 3)
 
@@ -91,94 +80,85 @@ async def test_vital_ap(dut):
     # RELEASE RESET
     # ---------------------------------------------------------
 
-    set_control(
-        dut,
-        sensitivity=1,
-        reset_n=1
-    )
+    dut.rst_n.value = 1
+    dut.ena.value = 1
 
     await run_cycles(dut, 1)
 
-    print("Reset released")
+    dut._log.info("Reset released")
 
 
     # ---------------------------------------------------------
     # TEST 1
-    # FIRST PIXEL
     # ---------------------------------------------------------
 
-    print("TEST 1: First pixel")
+    dut._log.info("TEST 1: First pixel")
 
     output, update, hold, activity = \
         await apply_pixel(dut, 100)
 
     assert output == 100, \
-        f"First pixel failed: expected 100, got {output}"
+        f"Expected 100, got {output}"
 
 
     # ---------------------------------------------------------
     # TEST 2
-    # STATIC IMAGE
     # ---------------------------------------------------------
 
-    print("TEST 2: Static image")
+    dut._log.info("TEST 2: Static pixel")
 
     output, update, hold, activity = \
         await apply_pixel(dut, 100)
 
     assert output == 100, \
-        f"Static pixel failed: expected 100, got {output}"
+        f"Expected 100, got {output}"
 
 
     # ---------------------------------------------------------
     # TEST 3
-    # LARGE TRANSITION
     # ---------------------------------------------------------
 
-    print("TEST 3: Large transition")
+    dut._log.info("TEST 3: Large transition")
 
     output, update, hold, activity = \
         await apply_pixel(dut, 200)
 
     assert output == 200, \
-        f"Large transition failed: expected 200, got {output}"
+        f"Expected 200, got {output}"
 
 
     # ---------------------------------------------------------
     # TEST 4
-    # REVERSE TRANSITION
     # ---------------------------------------------------------
 
-    print("TEST 4: Reverse transition")
+    dut._log.info("TEST 4: Reverse transition")
 
     output, update, hold, activity = \
         await apply_pixel(dut, 20)
 
     assert output == 20, \
-        f"Reverse transition failed: expected 20, got {output}"
+        f"Expected 20, got {output}"
 
 
     # ---------------------------------------------------------
     # TEST 5
-    # SMALL CHANGE
     # ---------------------------------------------------------
 
-    print("TEST 5: Small change")
+    dut._log.info("TEST 5: Small change")
 
     output, update, hold, activity = \
         await apply_pixel(dut, 21)
 
-    print(
+    dut._log.info(
         f"Small change output = {output}"
     )
 
 
     # ---------------------------------------------------------
     # TEST 6
-    # DISABLE
     # ---------------------------------------------------------
 
-    print("TEST 6: Disable")
+    dut._log.info("TEST 6: Disable")
 
     dut.ena.value = 0
 
@@ -186,30 +166,25 @@ async def test_vital_ap(dut):
         await apply_pixel(dut, 250)
 
     assert output != 250, \
-        "Pixel changed while VITAL-AP was disabled"
+        "Output changed while disabled"
 
 
     # ---------------------------------------------------------
     # TEST 7
-    # RE-ENABLE
     # ---------------------------------------------------------
 
-    print("TEST 7: Re-enable")
+    dut._log.info("TEST 7: Re-enable")
 
     dut.ena.value = 1
 
     output, update, hold, activity = \
         await apply_pixel(dut, 250)
 
-    print(
+    dut._log.info(
         f"Re-enabled output = {output}"
     )
 
 
-    # ---------------------------------------------------------
-    # FINISH
-    # ---------------------------------------------------------
-
-    print("========================================")
-    print("        VITAL-AP TEST PASSED")
-    print("========================================")
+    dut._log.info("================================")
+    dut._log.info("      VITAL-AP TEST PASSED")
+    dut._log.info("================================")
