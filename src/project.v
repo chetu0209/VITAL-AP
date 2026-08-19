@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module vital_ap #(
+module tt_um_vital_ap #(
     parameter DATA_WIDTH = 8
 )(
     input  logic                  clk,
