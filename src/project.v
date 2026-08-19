@@ -9,8 +9,9 @@ module tt_um_vital_ap (
     output wire [7:0] uio_out,
     output wire [7:0] uio_oe,
 
+    input wire ena,
     input wire clk,
-    input wire ena
+    input wire rst_n
 );
 
     // =========================================================
@@ -18,15 +19,11 @@ module tt_um_vital_ap (
     // =========================================================
 
     wire enable;
-    wire reset_n;
-
     wire [1:0] sensitivity;
 
     assign enable = ena;
 
     assign sensitivity = uio_in[1:0];
-
-    assign reset_n = uio_in[2];
 
 
     // =========================================================
@@ -34,7 +31,6 @@ module tt_um_vital_ap (
     // =========================================================
 
     reg [7:0] pixel_out;
-
     reg [7:0] previous_pixel;
 
     reg activity_d1;
@@ -42,15 +38,14 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // DIFFERENCE
+    // PIXEL DIFFERENCE
     // =========================================================
 
     wire current_change;
 
     reg [7:0] difference;
 
-    assign current_change =
-        (ui_in != previous_pixel);
+    assign current_change = (ui_in != previous_pixel);
 
 
     always @(*) begin
@@ -64,7 +59,7 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // TEMPORAL ACTIVITY
+    // TEMPORAL ACTIVITY DETECTOR
     // =========================================================
 
     reg [1:0] activity_level;
@@ -96,6 +91,15 @@ module tt_um_vital_ap (
 
     // =========================================================
     // ADAPTIVE THRESHOLD
+    //
+    // Sensitivity:
+    //
+    // 00 -> threshold 1
+    // 01 -> threshold 3
+    // 10 -> threshold 7
+    // 11 -> threshold 15
+    //
+    // Temporal activity modifies threshold.
     // =========================================================
 
     reg [7:0] threshold;
@@ -131,6 +135,7 @@ module tt_um_vital_ap (
                 threshold = threshold;
 
             2'b11:
+
                 if (threshold >= 8'd2)
                     threshold = threshold - 8'd2;
                 else
@@ -142,7 +147,7 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // UPDATE / HOLD
+    // UPDATE / HOLD DECISION
     // =========================================================
 
     reg update;
@@ -166,12 +171,12 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // SEQUENTIAL LOGIC
+    // SEQUENTIAL ADAPTIVE REGISTER
     // =========================================================
 
-    always @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge rst_n) begin
 
-        if (!reset_n) begin
+        if (!rst_n) begin
 
             pixel_out      <= 8'd0;
             previous_pixel <= 8'd0;
@@ -196,7 +201,7 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // OUTPUT PIXEL
+    // PIXEL OUTPUT
     // =========================================================
 
     assign uo_out = pixel_out;
@@ -222,18 +227,17 @@ module tt_um_vital_ap (
 
 
     // =========================================================
-    // PIN DIRECTIONS
+    // BIDIRECTIONAL PIN DIRECTIONS
     //
-    // uio[0] = INPUT
-    // uio[1] = INPUT
-    // uio[2] = INPUT
+    // uio[0] = SENSITIVITY[0] INPUT
+    // uio[1] = SENSITIVITY[1] INPUT
     //
-    // uio[3] = OUTPUT
-    // uio[4] = OUTPUT
-    // uio[5] = OUTPUT
-    // uio[6] = OUTPUT
+    // uio[3] = UPDATE OUTPUT
+    // uio[4] = HOLD OUTPUT
+    // uio[5] = ACTIVITY[0] OUTPUT
+    // uio[6] = ACTIVITY[1] OUTPUT
     //
-    // uio[7] = INPUT/unused
+    // uio[2] and uio[7] unused inputs
     // =========================================================
 
     assign uio_oe = 8'b0111_1000;
