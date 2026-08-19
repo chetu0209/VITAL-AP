@@ -1,206 +1,361 @@
-`timescale 1ns/1ps
+`default_nettype none
+`timescale 1ns / 1ps
 
-module tt_um_vital_ap #(
-    parameter DATA_WIDTH = 8
-)(
-    input  logic                  clk,
+// ============================================================
+// VITAL-AP
+//
+// Value-, Transition-, and Temporal-Aware Adaptive Register
+// for Low-Power Image and Video Processing
+//
+// ============================================================
+//
+// Pin mapping:
+//
+// ui_in[7:0]
+//     8-bit pixel input
+//
+// uo_out[7:0]
+//     8-bit adaptive pixel output
+//
+// uio_in[0]
+//     ENABLE
+//
+// uio_in[2:1]
+//     SENSITIVITY
+//
+// uio_in[7]
+//     RESET_N (active-low)
+//
+// uio_out[0]
+//     UPDATE
+//
+// uio_out[1]
+//     HOLD
+//
+// uio_out[3:2]
+//     ACTIVITY LEVEL
+//
+// uio[4:6]
+//     unused
+//
+// ============================================================
 
-    // 8-bit grayscale pixel input
-    input  logic [DATA_WIDTH-1:0] pixel_in,
+module tt_um_vital_ap (
 
-    // Enable adaptive processing
-    input  logic                  enable,
+    input  wire [7:0] ui_in,
 
-    // Select initial sensitivity
-    // 00 = high sensitivity
-    // 01 = medium sensitivity
-    // 10 = low sensitivity
-    // 11 = very low sensitivity
-    input  logic [1:0]            sensitivity,
+    output wire [7:0] uo_out,
 
-    // Registered output pixel
-    output logic [DATA_WIDTH-1:0] pixel_out,
+    input  wire [7:0] uio_in,
 
-    // Status outputs
-    output logic                  update,
-    output logic                  hold,
-    output logic [1:0]            activity_level
+    output wire [7:0] uio_out,
+
+    output wire [7:0] uio_oe,
+
+    input  wire       ena,
+
+    input  wire       clk
+
 );
 
-    // ------------------------------------------------------------
-    // Internal signals
-    // ------------------------------------------------------------
+    // ========================================================
+    // Control signals
+    // ========================================================
 
-    logic [DATA_WIDTH-1:0] previous_pixel;
+    wire enable;
 
-    logic [DATA_WIDTH-1:0] difference;
+    wire [1:0] sensitivity;
 
-    logic [DATA_WIDTH-1:0] threshold;
+    wire reset_n;
 
-    // Temporal activity history
-    logic activity_d1;
-    logic activity_d2;
 
-    logic current_change;
+    assign enable     = ena & uio_in[0];
 
-    // ------------------------------------------------------------
-    // Calculate absolute pixel difference
-    // ------------------------------------------------------------
+    assign sensitivity = uio_in[2:1];
 
-    always_comb begin
-        if (pixel_in >= previous_pixel)
-            difference = pixel_in - previous_pixel;
+    assign reset_n    = uio_in[7];
+
+
+    // ========================================================
+    // Registers
+    // ========================================================
+
+    reg [7:0] pixel_out;
+
+    reg [7:0] previous_pixel;
+
+    // Temporal history
+    reg activity_d1;
+    reg activity_d2;
+
+
+    // ========================================================
+    // Combinational signals
+    // ========================================================
+
+    wire current_change;
+
+    reg [7:0] difference;
+
+    reg [7:0] threshold;
+
+    reg [1:0] activity_level;
+
+    reg update;
+
+    reg hold;
+
+
+    // ========================================================
+    // Transition detector
+    // ========================================================
+
+    assign current_change =
+        (ui_in != previous_pixel);
+
+
+    // ========================================================
+    // Absolute difference detector
+    // ========================================================
+
+    always @(*) begin
+
+        if (ui_in >= previous_pixel)
+
+            difference =
+                ui_in - previous_pixel;
+
         else
-            difference = previous_pixel - pixel_in;
+
+            difference =
+                previous_pixel - ui_in;
+
     end
 
-    // ------------------------------------------------------------
-    // Current transition detection
-    // ------------------------------------------------------------
 
-    always_comb begin
-        current_change = (pixel_in != previous_pixel);
-    end
-
-    // ------------------------------------------------------------
-    // Activity level
+    // ========================================================
+    // Temporal activity classifier
     //
-    // Uses present transition + previous two transitions.
+    // current_change
+    // activity_d1
+    // activity_d2
     //
-    // 00 = no/very low activity
+    // 00 = very low activity
     // 01 = low activity
     // 10 = medium activity
     // 11 = high activity
-    // ------------------------------------------------------------
+    // ========================================================
 
-    always_comb begin
-        case ({current_change, activity_d1, activity_d2})
+    always @(*) begin
+
+        case ({current_change,
+               activity_d1,
+               activity_d2})
 
             3'b000,
             3'b001,
             3'b010:
+
                 activity_level = 2'b00;
+
 
             3'b011,
             3'b100:
+
                 activity_level = 2'b01;
+
 
             3'b101,
             3'b110:
+
                 activity_level = 2'b10;
 
+
             default:
+
                 activity_level = 2'b11;
 
         endcase
+
     end
 
-    // ------------------------------------------------------------
+
+    // ========================================================
     // Adaptive threshold
     //
-    // Base threshold comes from sensitivity.
+    // sensitivity:
     //
-    // High activity -> smaller threshold
-    // Low activity  -> larger threshold
+    // 00 = 1
+    // 01 = 3
+    // 10 = 7
+    // 11 = 15
     //
-    // This means:
-    // Static image  -> aggressive suppression
-    // Dynamic image -> more frequent updates
-    // ------------------------------------------------------------
+    // Temporal activity modifies the threshold.
+    // ========================================================
 
-    always_comb begin
+    always @(*) begin
 
         case (sensitivity)
 
-            2'b00: threshold = 8'd1;
-            2'b01: threshold = 8'd3;
-            2'b10: threshold = 8'd7;
-            2'b11: threshold = 8'd15;
+            2'b00:
+                threshold = 8'd1;
 
-            default: threshold = 8'd3;
+            2'b01:
+                threshold = 8'd3;
+
+            2'b10:
+                threshold = 8'd7;
+
+            default:
+                threshold = 8'd15;
 
         endcase
 
-        // Adapt threshold using temporal activity
 
         case (activity_level)
 
+            // Very low activity
+            // More aggressive suppression
+
             2'b00:
+
                 threshold = threshold + 8'd4;
 
+
+            // Low activity
+
             2'b01:
+
                 threshold = threshold + 8'd2;
 
+
+            // Medium activity
+
             2'b10:
+
                 threshold = threshold;
+
+
+            // High activity
+            // Become more sensitive
 
             2'b11:
-                if (threshold > 8'd2)
-                    threshold = threshold - 8'd2;
 
-            default:
-                threshold = threshold;
+                if (threshold >= 8'd2)
+
+                    threshold =
+                        threshold - 8'd2;
+
+                else
+
+                    threshold = 8'd0;
 
         endcase
 
     end
 
-    // ------------------------------------------------------------
-    // Update decision
-    //
-    // UPDATE if:
-    //   1. Processing enabled
-    //   2. Pixel difference >= adaptive threshold
-    //
-    // HOLD otherwise.
-    // ------------------------------------------------------------
 
-    always_comb begin
+    // ========================================================
+    // UPDATE / HOLD decision
+    // ========================================================
+
+    always @(*) begin
 
         update = 1'b0;
-        hold   = 1'b1;
 
-        if (enable && current_change &&
+        hold = 1'b1;
+
+
+        if (enable &&
+            current_change &&
             (difference >= threshold)) begin
 
             update = 1'b1;
-            hold   = 1'b0;
+
+            hold = 1'b0;
 
         end
 
     end
 
-    // ------------------------------------------------------------
-    // Sequential logic
-    // ------------------------------------------------------------
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    // ========================================================
+    // Sequential block
+    // ========================================================
 
-        if (!rst_n) begin
+    always @(posedge clk or negedge reset_n) begin
 
-            previous_pixel <= '0;
-            pixel_out      <= '0;
+        if (!reset_n) begin
 
-            activity_d1    <= 1'b0;
-            activity_d2    <= 1'b0;
+            pixel_out     <= 8'd0;
+
+            previous_pixel <= 8'd0;
+
+            activity_d1   <= 1'b0;
+
+            activity_d2   <= 1'b0;
 
         end
+
         else begin
 
-            // Store previous pixel
-            previous_pixel <= pixel_in;
+            // Save current pixel for next comparison
+
+            previous_pixel <= ui_in;
+
 
             // Temporal activity history
+
             activity_d2 <= activity_d1;
+
             activity_d1 <= current_change;
 
-            // Adaptive register update
-            if (enable && update) begin
-                pixel_out <= pixel_in;
-            end
+
+            // Update adaptive pixel register
+
+            if (enable && update)
+
+                pixel_out <= ui_in;
 
         end
 
     end
 
+
+    // ========================================================
+    // Outputs
+    // ========================================================
+
+    assign uo_out = pixel_out;
+
+
+    // uio_out:
+    //
+    // bit 0 = UPDATE
+    // bit 1 = HOLD
+    // bits 3:2 = ACTIVITY
+    //
+
+    assign uio_out = {
+        4'b0000,
+        activity_level,
+        hold,
+        update
+    };
+
+
+    // ========================================================
+    // Bidirectional pin direction
+    //
+    // uio[3:0] = outputs
+    // uio[7:4] = inputs
+    //
+    // uio[7] is RESET_N input.
+    // ========================================================
+
+    assign uio_oe = 8'b0000_1111;
+
+
 endmodule
+
+`default_nettype wire
