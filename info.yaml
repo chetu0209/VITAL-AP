@@ -1,18 +1,17 @@
 project:
-  title:        "VITAL-AP: Value-, Transition-, and Temporal-Aware Adaptive Register"
-  author:       "Chethan S P"
-  discord:      ""
-  description:  "Adaptive pixel register that reduces unnecessary switching in image and video processing using value, transition, temporal activity, and adaptive thresholding."
-  language:     "Verilog"
-  clock_hz:     50000000
-  tiles:        "1x1"
-  top_module:   "tt_um_vital_ap"
+  title: "VITAL-AP: Value-, Transition-, and Temporal-Aware Adaptive Register"
+  author: "Chethan S P"
+  discord: ""
+  description: "Adaptive register for reducing unnecessary switching in image and video processing."
+  language: "Verilog"
+  clock_hz: 50000000
+  tiles: "1x1"
+  top_module: "tt_um_vital_ap"
 
   source_files:
     - "project.v"
 
 pinout:
-  # Pixel input
   ui[0]: "PIXEL_IN[0]"
   ui[1]: "PIXEL_IN[1]"
   ui[2]: "PIXEL_IN[2]"
@@ -22,7 +21,6 @@ pinout:
   ui[6]: "PIXEL_IN[6]"
   ui[7]: "PIXEL_IN[7]"
 
-  # Pixel output
   uo[0]: "PIXEL_OUT[0]"
   uo[1]: "PIXEL_OUT[1]"
   uo[2]: "PIXEL_OUT[2]"
@@ -32,10 +30,9 @@ pinout:
   uo[6]: "PIXEL_OUT[6]"
   uo[7]: "PIXEL_OUT[7]"
 
-  # Bidirectional
   uio[0]: "SENSITIVITY[0]"
   uio[1]: "SENSITIVITY[1]"
-  uio[2]: "RESET_N"
+  uio[2]: "UNUSED"
   uio[3]: "UPDATE"
   uio[4]: "HOLD"
   uio[5]: "ACTIVITY[0]"
