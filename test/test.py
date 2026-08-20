@@ -1,190 +1,280 @@
 import cocotb
-from cocotb.triggers import Timer
+from cocotb.triggers import RisingEdge, Timer
 
 
-async def clock_cycle(dut):
+async def reset_dut(dut):
 
-    dut.clk.value = 0
-    await Timer(5, units="ns")
+    dut.rst_n.value = 0
+    dut.ena.value = 0
 
-    dut.clk.value = 1
-    await Timer(5, units="ns")
+    dut.ui_in.value = 0
+    dut.uio_in.value = 0
+
+    for _ in range(4):
+        await RisingEdge(dut.clk)
+
+    dut.rst_n.value = 1
+    dut.ena.value = 1
+
+    await RisingEdge(dut.clk)
 
 
-async def run_cycles(dut, count):
+def set_control(
+    dut,
+    sensitivity=1,
+    prediction=1,
+    force=0,
+    value_aware=1,
+    edge_enable=1,
+    motion_enable=1
+):
 
-    for _ in range(count):
-        await clock_cycle(dut)
+    control = 0
 
+    control |= sensitivity & 0x3
+    control |= prediction << 2
+    control |= force << 3
+    control |= value_aware << 4
+    control |= edge_enable << 5
+    control |= motion_enable << 6
 
-def set_sensitivity(dut, sensitivity):
-
-    dut.uio_in.value = sensitivity & 0x3
+    dut.uio_in.value = control
 
 
 async def apply_pixel(dut, value):
 
     dut.ui_in.value = value
 
-    await clock_cycle(dut)
+    await RisingEdge(dut.clk)
+    await Timer(1, units="ns")
 
     output = int(dut.uo_out.value)
-
     status = int(dut.uio_out.value)
 
-    update = (status >> 3) & 1
-    hold = (status >> 4) & 1
-    activity = (status >> 5) & 3
+    update = status & 0x01
+    hold = (status >> 1) & 0x01
+    confidence = (status >> 2) & 0x01
+    edge = (status >> 3) & 0x01
+    motion = (status >> 4) & 0x01
+    activity = (status >> 5) & 0x03
+    motion_burst = (status >> 7) & 0x01
 
     dut._log.info(
-        f"INPUT={value} "
-        f"OUTPUT={output} "
-        f"UPDATE={update} "
-        f"HOLD={hold} "
-        f"ACTIVITY={activity:02b}"
+        "PIXEL=%3d OUT=%3d "
+        "UPDATE=%d HOLD=%d CONF=%d "
+        "EDGE=%d MOTION=%d ACT=%d BURST=%d"
+        % (
+            value,
+            output,
+            update,
+            hold,
+            confidence,
+            edge,
+            motion,
+            activity,
+            motion_burst,
+        )
     )
 
-    return output, update, hold, activity
+    return (
+        output,
+        update,
+        hold,
+        confidence,
+        edge,
+        motion,
+        activity,
+        motion_burst,
+    )
 
 
 @cocotb.test()
 async def test_vital_ap(dut):
 
-    dut._log.info("================================")
-    dut._log.info("      VITAL-AP TEST START")
-    dut._log.info("================================")
+    dut._log.info("")
+    dut._log.info("======================================")
+    dut._log.info("       VITAL-APEX TEST")
+    dut._log.info("======================================")
 
+    await reset_dut(dut)
 
-    # ---------------------------------------------------------
-    # INITIALIZATION
-    # ---------------------------------------------------------
-
-    dut.clk.value = 0
-    dut.rst_n.value = 0
-    dut.ena.value = 0
-    dut.ui_in.value = 0
-
-    set_sensitivity(dut, 1)
-
-
-    # ---------------------------------------------------------
-    # RESET
-    # ---------------------------------------------------------
-
-    dut._log.info("Applying reset")
-
-    await run_cycles(dut, 3)
-
-
-    # ---------------------------------------------------------
-    # RELEASE RESET
-    # ---------------------------------------------------------
-
-    dut.rst_n.value = 1
-    dut.ena.value = 1
-
-    await run_cycles(dut, 1)
-
-    dut._log.info("Reset released")
-
-
-    # ---------------------------------------------------------
-    # TEST 1
-    # ---------------------------------------------------------
-
-    dut._log.info("TEST 1: First pixel")
-
-    output, update, hold, activity = \
-        await apply_pixel(dut, 100)
-
-    assert output == 100, \
-        f"Expected 100, got {output}"
-
-
-    # ---------------------------------------------------------
-    # TEST 2
-    # ---------------------------------------------------------
-
-    dut._log.info("TEST 2: Static pixel")
-
-    output, update, hold, activity = \
-        await apply_pixel(dut, 100)
-
-    assert output == 100, \
-        f"Expected 100, got {output}"
-
-
-    # ---------------------------------------------------------
-    # TEST 3
-    # ---------------------------------------------------------
-
-    dut._log.info("TEST 3: Large transition")
-
-    output, update, hold, activity = \
-        await apply_pixel(dut, 200)
-
-    assert output == 200, \
-        f"Expected 200, got {output}"
-
-
-    # ---------------------------------------------------------
-    # TEST 4
-    # ---------------------------------------------------------
-
-    dut._log.info("TEST 4: Reverse transition")
-
-    output, update, hold, activity = \
-        await apply_pixel(dut, 20)
-
-    assert output == 20, \
-        f"Expected 20, got {output}"
-
-
-    # ---------------------------------------------------------
-    # TEST 5
-    # ---------------------------------------------------------
-
-    dut._log.info("TEST 5: Small change")
-
-    output, update, hold, activity = \
-        await apply_pixel(dut, 21)
-
-    dut._log.info(
-        f"Small change output = {output}"
+    set_control(
+        dut,
+        sensitivity=1,
+        prediction=1,
+        force=0,
+        value_aware=1,
+        edge_enable=1,
+        motion_enable=1,
     )
 
 
-    # ---------------------------------------------------------
-    # TEST 6
-    # ---------------------------------------------------------
+    # ========================================================
+    # TEST 1 - INITIAL PIXEL
+    # ========================================================
 
-    dut._log.info("TEST 6: Disable")
+    dut._log.info("TEST 1: Initial pixel")
 
-    dut.ena.value = 0
+    result = await apply_pixel(dut, 100)
 
-    output, update, hold, activity = \
-        await apply_pixel(dut, 250)
-
-    assert output != 250, \
-        "Output changed while disabled"
+    assert result[0] == 100
 
 
-    # ---------------------------------------------------------
-    # TEST 7
-    # ---------------------------------------------------------
+    # ========================================================
+    # TEST 2 - STATIC REGION
+    # ========================================================
 
-    dut._log.info("TEST 7: Re-enable")
+    dut._log.info("TEST 2: Static region")
 
-    dut.ena.value = 1
+    old_output = result[0]
 
-    output, update, hold, activity = \
-        await apply_pixel(dut, 250)
+    for _ in range(4):
+
+        result = await apply_pixel(dut, 100)
+
+        assert result[0] == old_output
+
+
+    # ========================================================
+    # TEST 3 - SMALL CHANGE
+    # ========================================================
+
+    dut._log.info("TEST 3: Small change")
+
+    result = await apply_pixel(dut, 101)
 
     dut._log.info(
-        f"Re-enabled output = {output}"
+        "Small transition handled"
     )
 
 
-    dut._log.info("================================")
-    dut._log.info("      VITAL-AP TEST PASSED")
-    dut._log.info("================================")
+    # ========================================================
+    # TEST 4 - STRONG EDGE
+    # ========================================================
+
+    dut._log.info("TEST 4: Strong image edge")
+
+    result = await apply_pixel(dut, 220)
+
+    assert result[0] == 220
+
+
+    # ========================================================
+    # TEST 5 - OPPOSITE EDGE
+    # ========================================================
+
+    dut._log.info("TEST 5: Opposite edge")
+
+    result = await apply_pixel(dut, 20)
+
+    assert result[0] == 20
+
+
+    # ========================================================
+    # TEST 6 - TEMPORAL SEQUENCE
+    # ========================================================
+
+    dut._log.info("TEST 6: Temporal prediction")
+
+    await apply_pixel(dut, 40)
+    await apply_pixel(dut, 60)
+    await apply_pixel(dut, 80)
+
+    result = await apply_pixel(dut, 100)
+
+    dut._log.info(
+        "Temporal predictor exercised"
+    )
+
+
+    # ========================================================
+    # TEST 7 - MOTION BURST
+    # ========================================================
+
+    dut._log.info("TEST 7: Motion burst")
+
+    motion_values = [
+        10,
+        220,
+        20,
+        230,
+        30,
+        240,
+        40,
+        250,
+    ]
+
+    for value in motion_values:
+
+        result = await apply_pixel(dut, value)
+
+    assert result[0] == 250
+
+
+    # ========================================================
+    # TEST 8 - FORCE UPDATE
+    # ========================================================
+
+    dut._log.info("TEST 8: Force update")
+
+    set_control(
+        dut,
+        sensitivity=3,
+        prediction=1,
+        force=1,
+        value_aware=1,
+        edge_enable=1,
+        motion_enable=1,
+    )
+
+    result = await apply_pixel(dut, 77)
+
+    assert result[0] == 77
+
+
+    # ========================================================
+    # TEST 9 - DISABLE
+    # ========================================================
+
+    dut._log.info("TEST 9: Disable")
+
+    dut.ena.value = 0
+
+    old_output = int(dut.uo_out.value)
+
+    result = await apply_pixel(dut, 200)
+
+    assert result[0] == old_output
+
+
+    # ========================================================
+    # TEST 10 - RE-ENABLE
+    # ========================================================
+
+    dut._log.info("TEST 10: Re-enable")
+
+    dut.ena.value = 1
+
+    set_control(
+        dut,
+        sensitivity=0,
+        prediction=0,
+        force=1,
+        value_aware=1,
+        edge_enable=1,
+        motion_enable=1,
+    )
+
+    result = await apply_pixel(dut, 200)
+
+    assert result[0] == 200
+
+
+    # ========================================================
+    # FINISH
+    # ========================================================
+
+    dut._log.info("")
+    dut._log.info("======================================")
+    dut._log.info("       VITAL-APEX TEST PASSED")
+    dut._log.info("======================================")
