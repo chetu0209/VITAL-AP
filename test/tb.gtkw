@@ -1,21 +1,43 @@
 [*]
-[*] VITAL-AP GTKWave
+[*] VITAL-APEX waveform
 [*]
 
 [dumpfile] "tb.fst"
 
 [timestart] 0
 
-[size] 1200 750
-
-[pos] -1 -1
-
 [treeopen] tb.
+[treeopen] tb.dut.
 
 tb.clk
+tb.rst_n
 tb.ena
+
 tb.ui_in
 tb.uio_in
+
 tb.uo_out
 tb.uio_out
 tb.uio_oe
+
+tb.dut.pixel_d1
+tb.dut.pixel_d2
+tb.dut.pixel_d3
+tb.dut.pixel_d4
+
+tb.dut.predicted_pixel
+
+tb.dut.transition_difference
+tb.dut.prediction_difference
+
+tb.dut.edge_strength
+
+tb.dut.activity_count
+tb.dut.activity_level
+
+tb.dut.motion_count
+
+tb.dut.adaptive_threshold
+
+tb.dut.prediction_confidence
+tb.dut.update_decision
