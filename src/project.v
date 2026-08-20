@@ -2,7 +2,7 @@
 `timescale 1ns / 1ps
 
 // ============================================================
-// VITAL-APEX
+// VITAL-AP
 //
 // Value-, Prediction-, Activity-, and Edge-aware
 // Adaptive Register for Low-Power Image and Video Processing
