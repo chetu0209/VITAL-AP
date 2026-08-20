@@ -2,6 +2,12 @@
 
 ## Value-, Transition-, and Temporal-Aware Adaptive Register for Low-Power Image and Video Processing
 
+## Credits
+
+We gratefully acknowledge the Center of Excellence (CoE) in Integrated Circuits and Systems (ICAS) and the Department of Electronics and Communication Engineering (ECE) for providing the necessary resources and guidance.
+
+Special thanks to Dr. H V Ravish Aradhya (HoD- ECE), Dr. K R Usha Rani (Associate Dean-PG), Dr. K. S. Geetha (Vice Principal) and Dr. K. N. Subramanya (Principal) for their constant encouragement and support in facilitating this Tiny Tapeout SKY25A submission.
+
 ## How it works
 
 VITAL-AP is an adaptive register designed for low-power image and video processing.
@@ -37,15 +43,3 @@ Run the test using the Tiny Tapeout test environment. The generated `tb.fst` wav
 Important signals to observe include:
 
 `clk`, `rst_n`, `ena`, `ui_in`, `uo_out`, `uio_in`, and `uio_out`.
-
-## External hardware
-
-No external hardware is required.
-
-The design is a self-contained digital circuit and can be tested using simulation. After fabrication, it can be demonstrated using the Tiny Tapeout development board.
-
-## Credits
-
-We gratefully acknowledge the Center of Excellence (CoE) in Integrated Circuits and Systems (ICAS) and the Department of Electronics and Communication Engineering (ECE) for providing the necessary resources and guidance.
-
-Special thanks to Dr. H V Ravish Aradhya (HoD- ECE), Dr. K R Usha Rani (Associate Dean-PG), Dr. K. S. Geetha (Vice Principal) and Dr. K. N. Subramanya (Principal) for their constant encouragement and support in facilitating this Tiny Tapeout SKY25A submission.
