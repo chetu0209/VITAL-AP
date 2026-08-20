@@ -1,7 +1,3 @@
-# VITAL-AP
-
-## Value-, Transition-, and Temporal-Aware Adaptive Register for Low-Power Image and Video Processing
-
 ## Credits
 
 We gratefully acknowledge the Center of Excellence (CoE) in Integrated Circuits and Systems (ICAS) and the Department of Electronics and Communication Engineering (ECE) for providing the necessary resources and guidance.
