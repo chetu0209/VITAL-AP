@@ -1,17 +1,20 @@
 project:
-  title: "VITAL-AP: Value-, Transition-, and Temporal-Aware Adaptive Register"
+  title: "VITAL-APEX: Adaptive Pixel Register"
   author: "Chethan S P"
   discord: ""
-  description: "Adaptive register for reducing unnecessary switching in image and video processing."
+  description: "Value-, prediction-, activity-, and edge-aware adaptive register for low-power image and video processing."
   language: "Verilog"
   clock_hz: 50000000
+
   tiles: "1x1"
+
   top_module: "tt_um_vital_ap"
 
   source_files:
     - "project.v"
 
 pinout:
+
   ui[0]: "PIXEL_IN[0]"
   ui[1]: "PIXEL_IN[1]"
   ui[2]: "PIXEL_IN[2]"
@@ -32,11 +35,11 @@ pinout:
 
   uio[0]: "SENSITIVITY[0]"
   uio[1]: "SENSITIVITY[1]"
-  uio[2]: "UNUSED"
-  uio[3]: "UPDATE"
-  uio[4]: "HOLD"
-  uio[5]: "ACTIVITY[0]"
-  uio[6]: "ACTIVITY[1]"
-  uio[7]: "UNUSED"
+  uio[2]: "PREDICTION_ENABLE"
+  uio[3]: "FORCE_UPDATE"
+  uio[4]: "VALUE_AWARE"
+  uio[5]: "EDGE_ENABLE"
+  uio[6]: "MOTION_ENABLE"
+  uio[7]: "RESERVED"
 
 yaml_version: 6
