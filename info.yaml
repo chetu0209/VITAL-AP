@@ -1,6 +1,6 @@
 project:
   title: "VITAL-AP: Adaptive Pixel Register"
-  author: "Chethan S P"
+  author: "Chethan S P, Ansh A Agadi, Shylashree N, RV College of Engineering"
   discord: ""
   description: "Value-, prediction-, activity-, and edge-aware adaptive register for low-power image and video processing."
   language: "Verilog"
