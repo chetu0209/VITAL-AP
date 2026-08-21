@@ -1,27 +1,46 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# VITAL-AP -- Value-, Transition-, and Temporal-Aware Adaptive Register
 
-- [Read the documentation for project](docs/info.md)
+Tiny Tapeout submission for low-power image and video processing using the SkyWater 130nm technology.
+
+- **Project documentation:** See `info.md`
+- **Source code:** See `src/project.v`
+- **Testbench:** See `test/`
+
+## What is this?
+
+VITAL-AP is a compact adaptive register designed for low-power image and video processing. It receives an 8-bit pixel value and compares it with previously stored pixel information. The design uses value changes, transition magnitude, and temporal behavior to determine whether the new pixel should be stored or whether the previous value can be retained.
+
+For relatively static image regions, where consecutive pixel values change only slightly, VITAL-AP can suppress unnecessary register updates. When a significant change such as an image edge or motion is detected, the register can update normally. The design also provides configurable sensitivity, activity controls, and a force-update mode.
+
+The main objective is to reduce unnecessary switching activity in image and video processing hardware while maintaining useful pixel information.
+
+## Design Summary
+
+VITAL-AP is a 1×1 Tiny Tapeout digital design implemented in Verilog for SkyWater 130 nm technology.
+
+Top module: tt_um_vital_ap
+Tile size: 1×1
+Technology: SkyWater 130 nm
+HDL: Verilog
+Clock: clk
+Reset: Active-low rst_n
+Enable: ena
+Pixel input: 8-bit ui_in
+Pixel output: 8-bit uo_out
+Control input: 8-bit uio_in
+Status output: 8-bit uio_out
+Application: Low-power image and video processing
+Main feature: Adaptive suppression of unnecessary register transitions using pixel value, transition, and temporal information
+Additional features: Configurable sensitivity, edge/motion activity detection, and force-update control
+
 
 ## What is Tiny Tapeout?
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+Tiny Tapeout is an educational project that makes it easier and more affordable to manufacture small digital and analog designs on a real chip.
 
-To learn more and get started, visit https://tinytapeout.com.
-
-## Set up your Verilog project
-
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
-
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
-
-## Enable GitHub actions to build the results page
-
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+For more information, visit https://tinytapeout.com/.
 
 ## Resources
 
